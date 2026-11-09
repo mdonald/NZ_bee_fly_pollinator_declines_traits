@@ -17,47 +17,10 @@ setwd("~/Library/CloudStorage/OneDrive-MWLR/Marion Donald Rutherford Postdoc - M
 library(tidyverse)
 library(sf)
 
-## ── 1. Load and clean ────────────────────────────────────────
+## ── 1. Load  ────────────────────────────────────────
 
 GRID_M <- 50000L
-
-FAMILIES <- c("Colletidae", "Apidae", "Halictidae", "Megachilidae",
-              "Syrphidae", "Calliphoridae", "Polleniidae")
-
-df_full <- read.csv("collections_df4.csv") |>
-  mutate(
-    year    = as.numeric(year),
-    species = trimws(species),
-    family  = trimws(family),
-    species = case_when(
-      species == "Nesocolletes fulvescens" ~ "Leioproctus fulvescens",
-      species == "Nesocolletes paahaumaa"  ~ "Leioproctus paahaumaa",
-      .default = species
-    )
-  ) |>
-  filter(
-    species != "Apis mellifera",
-    !is.na(latitude), !is.na(longitude),
-    !is.na(year), !is.na(species),
-    latitude  > -50, latitude  < -33,
-    longitude > 165, longitude < 180,
-    family %in% FAMILIES
-    ) |>
-  mutate(
-       event_id = case_when(
-      !is.na(month) & !is.na(day) ~ paste(round(latitude, 3),
-                                          round(longitude, 3),
-                                          year, month, day, sep = "_"),
-      !is.na(month)               ~ paste(round(latitude, 3),
-                                          round(longitude, 3),
-                                          year, month, sep = "_"),
-      TRUE                        ~ NA_character_
-    )
-  )%>% 
-  filter(year >= 1920)  # very sparse pre 1920
-
-write.csv(df_full, "final_df_for_modelv2.csv")
-
+df_full <- read.csv("final_df_for_modelv2.csv")
 ## Confirm only the seven intended families remain before continuing.
 stopifnot(all(unique(df_full$family) %in% FAMILIES))
 cat("Families present after filtering:\n")
@@ -221,7 +184,7 @@ df_full |> summarise(records = n(), species = n_distinct(species),
 
 ## 2. Bee vs fly split, analytical dataset
 BEE_FAM <- c("Colletidae", "Apidae", "Halictidae", "Megachilidae")
-FLY_FAM <- c("Syrphidae", "Calliphoridae")
+FLY_FAM <- c("Syrphidae", "Calliphoridae", "Pollendiae")
 df <- df |> mutate(group = if_else(family %in% BEE_FAM, "bee", "fly"))
 df |> group_by(group) |> summarise(records = n(), species = n_distinct(species))
 df |> filter(species %in% keep_species) |> distinct(species, group) |> count(group)
